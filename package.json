@@ -1,0 +1,12 @@
+{
+  "name": "doctest",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "doctest": "src/cli.ts"
+  },
+  "scripts": {
+    "doctest": "bun run src/cli.ts",
+    "test": "bun run src/cli.ts"
+  }
+}

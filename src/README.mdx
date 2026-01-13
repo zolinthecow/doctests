@@ -1,0 +1,27 @@
+# Doctest internals
+
+These modules are small on purpose. The CLI wires them together in a straight line: load config → discover files → parse blocks → run blocks → report.
+
+## Module map
+
+- `config.ts` loads `doctest.config.toml` and merges defaults.
+- `discover.ts` expands include/exclude globs.
+- `parse.ts` finds fenced code blocks and parses meta flags.
+- `run.ts` executes each block with timeout handling.
+- `report.ts` prints the summary and failure output.
+
+## Runtime helpers
+
+Doctest exports `DOCTEST_ROOT`, `DOCTEST_FILE`, `DOCTEST_TMP`, and `DOCTEST_WORKDIR` for each block. Lua blocks can use these to find the repo or scratch space.
+
+## Sanity checks
+
+```sh
+test -n "$DOCTEST_ROOT"
+test -n "$DOCTEST_TMP"
+test -n "$DOCTEST_WORKDIR"
+```
+
+```sh
+test -f 'doctest/src/parse.ts'
+```

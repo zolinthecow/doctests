@@ -1,0 +1,16 @@
+include = ["docs/**/*.md", "docs/**/*.mdx", "src/**/*.md", "src/**/*.mdx"]
+exclude = ["**/node_modules/**", "**/dist/**"]
+timeout_ms = 20000
+unknown_language = "skip"
+
+[runners]
+sh = "/bin/sh -e"
+bash = "/bin/sh -e"
+js = "bun"
+ts = "bun"
+
+[hooks]
+# setup = "docker compose -f compose.yml up -d"
+# teardown = "docker compose -f compose.yml down"
+
+[env]
