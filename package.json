@@ -1,12 +1,22 @@
 {
-  "name": "doctest",
-  "private": true,
-  "type": "module",
+  "name": "@zolinthecow/doctests",
+  "version": "0.1.0",
+  "private": false,
   "bin": {
-    "doctest": "src/cli.ts"
+    "doctests": "dist/doctests.js"
   },
+  "type": "module",
   "scripts": {
-    "doctest": "bun run src/cli.ts",
-    "test": "bun run src/cli.ts"
+    "doctests": "bun run src/cli.ts",
+    "test": "bun run src/cli.ts",
+    "lint": "oxlint .",
+    "format": "oxfmt --check .",
+    "ci": "oxlint . && oxfmt --check . && bun run src/cli.ts",
+    "build": "bun build src/cli.ts --target bun --outfile dist/doctests.js --banner '#!/usr/bin/env bun'",
+    "publish": "bun run build && bun publish --access public"
+  },
+  "devDependencies": {
+    "oxfmt": "latest",
+    "oxlint": "latest"
   }
 }

@@ -1,27 +1,109 @@
 # Doctest internals
 
-These modules are small on purpose. The CLI wires them together in a straight line: load config → discover files → parse blocks → run blocks → report.
+These modules are small on purpose. The CLI wires them together in a straight line: load config → discover files → parse blocks → run blocks → report. This doc sits next to the implementation and doubles as a runnable sanity suite.
 
 ## Module map
 
+- `cli.ts` wires config, discovery, execution, and reporting.
 - `config.ts` loads `doctest.config.toml` and merges defaults.
-- `discover.ts` expands include/exclude globs.
+- `discover.ts` expands include/exclude globs with `Bun.Glob`.
 - `parse.ts` finds fenced code blocks and parses meta flags.
-- `run.ts` executes each block with timeout handling.
+- `run.ts` executes each block, manages temp dirs, and applies hooks.
 - `report.ts` prints the summary and failure output.
 
-## Runtime helpers
+## Config loading
 
-Doctest exports `DOCTEST_ROOT`, `DOCTEST_FILE`, `DOCTEST_TMP`, and `DOCTEST_WORKDIR` for each block. Lua blocks can use these to find the repo or scratch space.
+`loadConfig` resolves `doctest.config.toml` from the working directory, merges defaults, and derives the repo root from the config path. If the config is missing, it falls back to defaults rooted at `process.cwd()`.
 
-## Sanity checks
+## Block parsing
+
+`parseFile` splits on fenced blocks, then interprets meta tokens into flags, attributes (such as `workdir`), and `env=KEY=VALUE` entries. The parsed block carries the original file path and starting line to make reports easy to trace.
+
+## Execution model
+
+`runBlocks` creates a temp workspace per block, runs optional hooks once, and executes each block in its requested `workdir`. Every runner receives consistent `DOCTEST_*` environment variables for locating the repo, file, and scratch space.
+
+## Reporting
+
+`printReport` summarizes totals and prints failures with file-relative locations and captured stdout/stderr for quick triage.
+
+## Runtime checks
+
+```ts
+import path from "path";
+import { pathToFileURL } from "url";
+
+const root = process.env.DOCTEST_ROOT || process.cwd();
+const { loadConfig } = await import(pathToFileURL(path.join(root, "src/config.ts")).href);
+
+const { config, rootDir } = await loadConfig();
+if (!rootDir) {
+  process.exit(1);
+}
+if (!config.include.includes("README.mdx")) {
+  process.exit(1);
+}
+if (!config.runners.ts) {
+  process.exit(1);
+}
+```
+
+```ts
+import path from "path";
+import { pathToFileURL } from "url";
+
+const root = process.env.DOCTEST_ROOT || process.cwd();
+const { discoverFiles } = await import(pathToFileURL(path.join(root, "src/discover.ts")).href);
+
+const files = await discoverFiles(["src/cli.ts"], [], root);
+if (!files.some((file) => file.endsWith("src/cli.ts"))) {
+  process.exit(1);
+}
+```
+
+````ts
+import path from "path";
+import { pathToFileURL } from "url";
+
+const root = process.env.DOCTEST_ROOT || process.cwd();
+const { parseFile } = await import(pathToFileURL(path.join(root, "src/parse.ts")).href);
+
+const sample = ["```sh env=FOO=bar workdir=src", 'echo "ok"', "```"].join("\n");
+const [block] = parseFile("sample.mdx", sample);
+if (!block) {
+  process.exit(1);
+}
+if (block.lang !== "sh") {
+  process.exit(1);
+}
+if (block.env.FOO !== "bar") {
+  process.exit(1);
+}
+if (block.attributes.workdir !== "src") {
+  process.exit(1);
+}
+if (!block.code.includes("echo")) {
+  process.exit(1);
+}
+````
 
 ```sh
 test -n "$DOCTEST_ROOT"
+test -n "$DOCTEST_FILE"
 test -n "$DOCTEST_TMP"
 test -n "$DOCTEST_WORKDIR"
 ```
 
-```sh
-test -f 'doctest/src/parse.ts'
+```sh workdir=src
+test -f 'cli.ts'
+```
+
+```js
+const file = process.env.DOCTEST_FILE || "";
+if (!file.includes("src/README.mdx")) {
+  process.exit(1);
+}
+if (!process.env.DOCTEST_TMP) {
+  process.exit(1);
+}
 ```

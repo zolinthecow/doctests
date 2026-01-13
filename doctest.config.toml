@@ -1,4 +1,4 @@
-include = ["docs/**/*.md", "docs/**/*.mdx", "src/**/*.md", "src/**/*.mdx"]
+include = ["README.mdx", "src/**/*.md", "src/**/*.mdx"]
 exclude = ["**/node_modules/**", "**/dist/**"]
 timeout_ms = 20000
 unknown_language = "skip"

@@ -1,0 +1,93 @@
+# Doctests
+
+Doctests runs fenced code blocks inside Markdown/MDX files as tests. By default it runs every fenced block with a known language, unless you opt out with `no-doctest`.
+
+## Quick usage
+
+```sh
+bun run src/cli.ts --help
+```
+
+```sh no-doctest
+doctests --help
+```
+
+## Configuration
+
+Doctests loads `doctest.config.toml` from the repo root (or uses `--config`). Use `--files` to override include globs.
+
+```sh
+test -f 'doctest.config.toml'
+test -f 'src/cli.ts'
+```
+
+## Hooks
+
+Use `hooks.setup` and `hooks.teardown` in `doctest.config.toml` to run commands once per run.
+
+## Runner environment
+
+Each block receives `DOCTEST_ROOT`, `DOCTEST_FILE`, `DOCTEST_TMP`, and `DOCTEST_WORKDIR`.
+
+```sh
+test -n "$DOCTEST_ROOT"
+test -n "$DOCTEST_FILE"
+test -n "$DOCTEST_TMP"
+test -n "$DOCTEST_WORKDIR"
+```
+
+## Workdir override
+
+```sh workdir=src
+test -f 'README.mdx'
+```
+
+## Per-block temp dir
+
+```sh
+touch "$DOCTEST_TMP/marker"
+test -f "$DOCTEST_TMP/marker"
+```
+
+## Environment injection
+
+```sh env=FOO=bar
+test "$FOO" = 'bar'
+```
+
+## JavaScript block
+
+```js
+if (!process.env.DOCTEST_ROOT || !process.env.DOCTEST_FILE) {
+  process.exit(1);
+}
+```
+
+## TypeScript block
+
+```ts
+const root = process.env.DOCTEST_ROOT;
+const workdir = process.env.DOCTEST_WORKDIR;
+if (!root || !workdir) {
+  process.exit(1);
+}
+```
+
+## Lua runner
+
+Set `lua = 'nvim'` to run Lua blocks inside headless Neovim with the repo on `runtimepath`.
+
+```lua
+local root = os.getenv('DOCTEST_ROOT')
+assert(root and root ~= '')
+assert(vim.g.headless_mode == true)
+assert(vim.o.runtimepath:find(root, 1, true))
+```
+
+## Opting out
+
+Any fenced block can be skipped with `no-doctest`.
+
+```sh no-doctest
+exit 1
+```
